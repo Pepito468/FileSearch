@@ -21,6 +21,7 @@ int folder_search(char *directory_name, char* file_to_find){
     //declaring structures
     struct dirent *directory_entry;
     DIR *directory; 
+    struct stat path_stat;
 
     char directory_name_buffer[BUFFER_SIZE];
 
@@ -38,7 +39,8 @@ int folder_search(char *directory_name, char* file_to_find){
     while ((directory_entry = readdir(directory))){
 
         //if the entry is a folder itself, check every file in that (calls to recursive function)
-        if (!stat(directory_entry -> d_name, (struct stat*) directory_name)){
+        stat(directory_entry -> d_name, &path_stat);
+        if (!S_ISREG(path_stat.st_mode)){
 
             //check if file is in the entry name
             if (strstr(directory_entry -> d_name, file_to_find) != NULL){
