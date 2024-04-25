@@ -3,16 +3,9 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 
-//checking OS
-#ifdef __linux__
-    #define ROOT_FOLDER "/"
-    #define HOME_FOLDER "/home"
-#elif _WIN32 //TODO: THIS DOES NOT WORK <<<------ FIX THIS
-    #define ROOT_FOLDER "C:\\"
-    #define HOME_FOLDER "C:\\Users"
-#endif
+#define ROOT_FOLDER "/"
+#define HOME_FOLDER "/home"
 
 //buffer size
 #define BUFFER_SIZE 1024
@@ -21,7 +14,6 @@ int folder_search(char *directory_name, char* file_to_find){
     //declaring structures
     struct dirent *directory_entry;
     DIR *directory; 
-    struct stat path_stat;
 
     char directory_name_buffer[BUFFER_SIZE];
 
@@ -37,27 +29,22 @@ int folder_search(char *directory_name, char* file_to_find){
 
     //looking for file
     while ((directory_entry = readdir(directory))){
-
         //if the entry is a folder itself, check every file in that (calls to recursive function)
-        stat(directory_entry -> d_name, &path_stat);
-        if (!S_ISREG(path_stat.st_mode)){
-
+        if (directory_entry -> d_type == DT_DIR){
             //check if file is in the entry name
             if (strstr(directory_entry -> d_name, file_to_find) != NULL){
                 printf("[D] %s found at location %s\n", directory_entry -> d_name, directory_name);
                 file_count++;
             }
-
             //avoid . and ..
             if (strcmp(directory_entry -> d_name, ".") != 0 && strcmp(directory_entry -> d_name, "..") != 0){
                 //prepare buffer to be sent to the recursive call
-                //ignore first ROOT_FOLDER symbol
-                if (strcmp(directory_name, ROOT_FOLDER) != 0)
-                    strncpy(directory_name_buffer, directory_name, BUFFER_SIZE-1);
-                strncat(directory_name_buffer, ROOT_FOLDER, BUFFER_SIZE - strlen(directory_name_buffer) - 1);
+                //ignore first "/" symbol
+                //if (strcmp(directory_name, "/") != 0)
+                strncpy(directory_name_buffer, directory_name, BUFFER_SIZE-1);
+                if (strcmp(directory_name, "/") != 0)
+                    strncat(directory_name_buffer, "/", BUFFER_SIZE - strlen(directory_name_buffer) - 1);
                 strncat(directory_name_buffer, directory_entry -> d_name, BUFFER_SIZE - strlen(directory_name_buffer)- 1);
-                //printf("%s\n", directory_name_buffer);
-
                 //if the buffer is full, skip the file to avoid an infinite truncating loop
                 if (strlen(directory_name_buffer) == BUFFER_SIZE - 1){
                     printf("Name buffer full. Skipping a file...\n");
@@ -69,17 +56,16 @@ int folder_search(char *directory_name, char* file_to_find){
 
                 //update number of files found
                 file_count += recursive_file_count;
-            } 
-        //normal file
+            }
         } else {
+            //printf("[F] %s\n", directory_entry -> d_name);
             if (strstr(directory_entry -> d_name, file_to_find) != NULL){
                 printf("[F] %s found at location %s\n", directory_entry -> d_name, directory_name);
                 file_count++;
             }
-        }
-        //file_count++;
+    //file_count++;
     }
-
+}
     //closing directory
     closedir(directory);
 
@@ -94,6 +80,7 @@ int main(){
     char search_directory[BUFFER_SIZE];
     char file_to_find[BUFFER_SIZE];
 
+    //printf("Welcome to FileSearch.\nInput the file to be searched trough your entire machine: ");
     printf("Welcome to FileSearch.\nInput the file to be searched: ");
     scanf("%63s", file_to_find);
     printf("[0] Search Root (\"/\")\n[1] Search your home\n[2] Custom Folder\nInput: ");
@@ -113,12 +100,11 @@ int main(){
             printf("Invalid choice\n");
             break;
     }
-
     //call to function
     file_count = folder_search(search_directory, file_to_find);
 
     printf("Found %d files.\n", file_count);
-    
+
 
     return 0;
 }
